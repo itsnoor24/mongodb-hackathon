@@ -1,10 +1,12 @@
 # Text stream observer
 
-This branch observes an agent's emitted text. The active console contains a raw transcript and a tree of model-inferred activity. It does not invoke the gateway, dispatch tools, or pause the source agent. The Phase 1 replay console remains available at `/?mode=replay`.
+This branch observes an agent's emitted text. The console contains a raw transcript and a graph of model-inferred activity. It does not invoke the gateway, dispatch tools, or pause the source agent.
 
 ## Capture a command's output
 
 For the complete input-to-output demo, run `npm run demo:pipeline`. It creates a fresh stream and replays exported conversation entries while a concurrent worker follows the committed Atlas input frames. A precomputed `conversation-parsed.json` node becomes eligible as soon as its evidence quote and its ancestors' evidence have arrived. Nodes are committed individually before input EOF, so the transcript and tree grow together. Open the printed URL to watch both. This is deterministic replay of assistant-authored output, not live LLM inference. The worker holds a parser lease, checks that the received text is an exact prefix of the fixture, retains committed nodes on failure, and reports an error if input ends early. All writes still maintain embedding input for Atlas Automated Embedding.
+
+You can also enter the observer access key in the UI and select **Start / restart streaming demo**. Each start creates and opens a fresh stream. Restarting an active replay stops its producer and consumer first; the partial earlier stream remains available. The server launches only the bundled fixture runner and hides its Windows process window.
 
 For a repeatable mock terminal demo, run `npm run demo:text` while the app is running. It prints a new observer URL, then pipes synthetic incident-triage output into the actual consumer, one line every 1.2 seconds. The mock does not execute tool calls or create GitHub issues.
 

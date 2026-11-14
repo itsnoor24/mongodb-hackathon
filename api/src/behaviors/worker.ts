@@ -1,10 +1,11 @@
 import { Db } from "mongodb";
 import { config } from "../config.js";
+import { createHash } from "node:crypto";
 import { getDb } from "../db/client.js";
 import type { StoredNode, TextChunk } from "../streams/store.js";
 import { behaviorFingerprint, matchBehavior, textHash, type BehaviorRule, type BehaviorCheck, type BehaviorMatch, type ObservedNode } from "./matcher.js";
 
-export const behaviorRuntime: { running: boolean; lastTickAt?: Date; error?: string; nextSemanticAt?: Date } = { running: false };
+export const behaviorRuntime: { running: boolean; matcherRevision: string; lastTickAt?: Date; error?: string; nextSemanticAt?: Date } = { running: false, matcherRevision: "source-evidence-v2" };
 let initialization: Promise<void> | undefined;
 export async function initializeBehaviors(db: Db) {
   initialization ??= Promise.all([
@@ -24,14 +25,12 @@ export function semanticBehaviorPipeline(rule: BehaviorRule, step: number) {
 }
 
 export async function recordBehaviorMatches(db: Db, rules: BehaviorRule[], nodes: ObservedNode[], checks: BehaviorCheck[]) {
-  let created = 0;
-  for (const rule of rules) {
-    for (const match of matchBehavior(rule, nodes, checks.filter(check => check.behaviorId === rule._id))) {
-      const result = await db.collection<BehaviorMatch>("behavior_matches").updateOne({ _id: match._id }, { $setOnInsert: match }, { upsert: true });
-      created += result.upsertedCount;
-    }
-  }
-  return created;
+  const matches = rules.flatMap(rule => matchBehavior(rule, nodes, checks.filter(check => check.behaviorId === rule._id)));
+  if (!matches.length) return 0;
+  const result = await db.collection<BehaviorMatch>("behavior_matches").bulkWrite(matches.map(match => ({ updateOne: {
+    filter: { _id: match._id }, update: { $setOnInsert: match }, upsert: true,
+  } })), { ordered: false });
+  return result.upsertedCount;
 }
 
 /** Phrase checks run independently of the slower, rate-limited semantic queue. */
@@ -41,6 +40,7 @@ export function startBehaviorWorker() {
   let semanticBusy = false;
   let nextSemantic = 0;
   let lastJob = "";
+  let lastEvaluation = "";
   async function tick() {
     try {
       const db = await getDb(); await initializeBehaviors(db);
@@ -51,7 +51,12 @@ export function startBehaviorWorker() {
         const times = new Map(chunks.map(chunk => [`${chunk.streamId}:${chunk.sequence}`, chunk.ts]));
         const nodes: ObservedNode[] = saved.map(node => ({ ...node, observedAt: times.get(`${node.streamId}:${node.throughSequence}`) ?? node.updatedAt }));
         const checks = await db.collection<BehaviorCheck>("behavior_checks").find({ behaviorId: { $in: rules.map(rule => rule._id) } }).toArray();
-        await recordBehaviorMatches(db, rules, nodes, checks);
+        const evaluation = createHash("sha256").update(JSON.stringify([
+          rules.map(rule => [rule._id, rule.updatedAt]),
+          nodes.map(node => [node._id, textHash(node), node.status, node.throughSequence, node.observedAt]),
+          checks.map(check => [check._id, check.checkedAt]),
+        ])).digest("hex");
+        if (evaluation !== lastEvaluation) { await recordBehaviorMatches(db, rules, nodes, checks); lastEvaluation = evaluation; }
         if (!semanticBusy && Date.now() >= nextSemantic) {
           const jobs = rules.filter(rule => rule.mode === "semantic").flatMap(rule => rule.steps.map((_, step) => ({ rule, step, id: `${rule._id}:${step}` })));
           const start = Math.max(0, jobs.findIndex(job => job.id === lastJob) + 1);

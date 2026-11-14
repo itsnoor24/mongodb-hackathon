@@ -50,11 +50,13 @@ export function behaviorFingerprint(nodes: StoredNode[]) {
 export function matchBehavior(rule: BehaviorRule, nodes: ObservedNode[], checks: BehaviorCheck[] = []): BehaviorMatch[] {
   if (!rule.enabled) return [];
   const candidates = rule.steps.map((step, index) => {
-    const scores = new Map((checks.find(check => check.step === index)?.hits ?? []).map(hit => [hit.nodeKey, hit]));
+    const scores = new Map((checks.find(check => check.behaviorId === rule._id && check.step === index)?.hits ?? []).map(hit => [hit.nodeKey, hit]));
     return nodes.filter(node => !rule.streamId || node.streamId === rule.streamId).flatMap(node => {
       if (step.status && node.status !== step.status) return [];
       if (rule.mode === "text") {
-        const text = nodeEmbeddingFields(node).embeddingText.normalize("NFKC").toLowerCase();
+        // Summaries can mention past events ("recovered after a retry"). Exact
+        // signals should be grounded in this activity's label or source quote.
+        const text = `${node.label}\n${node.evidence}`.normalize("NFKC").toLowerCase();
         return step.query.split("|").some(term => text.includes(term.trim().normalize("NFKC").toLowerCase())) ? [{ node, score: 1 }] : [];
       }
       const hit = scores.get(node._id);

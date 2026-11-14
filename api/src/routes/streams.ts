@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
+import { spawn, type ChildProcess } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { assertAgentAuth, assertSearchAuth, AuthError } from "../auth/credentials.js";
 import { getDb } from "../db/client.js";
 import { frameText, StreamInputError } from "../streams/framing.js";
@@ -7,6 +9,8 @@ import { initializeStreams, createStream, appendChunk, parseAvailable, type Text
 import { nodeSearchPipeline } from "../streams/embeddings.js";
 
 export const streamsRouter = Router();
+let demoProcess: ChildProcess | undefined;
+let demoStarting = false;
 let initialization: Promise<void> | undefined;
 async function database() {
   const db = await getDb();
@@ -19,6 +23,47 @@ function publicStream(stream: TextStream) {
   const { uploadOwner, uploadUntil, parseOwner, parseUntil, ...view } = stream;
   return { ...view, receiving: !!uploadUntil && uploadUntil > new Date() };
 }
+
+// Only the fixed bundled fixture runner is executable through this endpoint.
+streamsRouter.post("/demo/start", async (req, res) => {
+  let ownsStart = false;
+  try {
+    assertSearchAuth(req);
+    if (demoStarting) { res.status(409).json({ error: "A demo start or restart is already in progress." }); return; }
+    demoStarting = true;
+    ownsStart = true;
+    if (demoProcess) {
+      const previous = demoProcess;
+      await new Promise<void>((resolve, reject) => {
+        if (previous.exitCode !== null || previous.signalCode !== null) { resolve(); return; }
+        const timeout = setTimeout(() => { previous.off("close", done); reject(new Error("The previous demo did not stop; try again.")); }, 5000);
+        function done() { clearTimeout(timeout); resolve(); }
+        previous.once("close", done);
+        if (!previous.connected) { clearTimeout(timeout); previous.off("close", done); reject(new Error("The previous demo cannot be restarted yet.")); return; }
+        previous.send?.({ type: "restart" }, error => { if (error) { clearTimeout(timeout); previous.off("close", done); reject(error); } });
+      });
+    }
+    const db = await database();
+    const stream = await createStream(db, "Live conversation replay", "fixture");
+    const child = spawn(process.execPath, ["--import", "tsx", fileURLToPath(new URL("../../scripts/demo-text.ts", import.meta.url)), "--conversation", "--with-output", stream._id], {
+      cwd: fileURLToPath(new URL("../../", import.meta.url)), stdio: ["ignore", "ignore", "ignore", "ipc"], windowsHide: true,
+    });
+    demoProcess = child;
+    const markFailed = async (message: string) => {
+      await db.collection<TextStream>("text_streams").updateOne({ _id: stream._id, parserStatus: { $ne: "failed" } }, { $set: { parserStatus: "failed", parserError: message, updatedAt: new Date() } });
+    };
+    child.once("close", code => {
+      if (demoProcess === child) demoProcess = undefined;
+      if (code !== 0) void markFailed(`Demo process exited with code ${code ?? "unknown"}`).catch(console.error);
+    });
+    await new Promise<void>((resolve, reject) => { child.once("spawn", resolve); child.once("error", reject); });
+    res.status(202).json({ stream: publicStream(stream) });
+  } catch (error) {
+    res.status(error instanceof AuthError ? 401 : 500).json({ error: error instanceof Error ? error.message : "Could not start demo" });
+  } finally {
+    if (ownsStart) demoStarting = false;
+  }
+});
 
 streamsRouter.post("/", async (req, res) => {
   try {

@@ -17,6 +17,7 @@
     "demo:conversation": "npm run demo:conversation -w api --",
     "demo:parsed": "npm run demo:parsed -w api --",
     "demo:pipeline": "npm run demo:pipeline -w api --",
+    "demo:behaviors": "npm run demo:behaviors -w api --",
     "nodes:embed": "npm run nodes:embed -w api --",
     "test:streams": "npm run test:streams -w api"
   },

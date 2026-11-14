@@ -1,28 +1,30 @@
 # Sentinel
 
-On the `steffen/text-stream-local-llm` branch, the default UI is the passive text-stream observer. See [text stream setup and API](docs/text-streams.md). The Phase 1 replay console is available at `/?mode=replay`.
+The UI is a passive text-stream observer. See [text stream setup and API](docs/text-streams.md).
 
 Parsed nodes support [Atlas-managed Voyage embeddings and semantic retrieval](docs/node-embeddings.md). Run `npm run nodes:embed` once to backfill existing node text and create the embedding index.
 
-Use-case-agnostic **agent audit console** for the MongoDB hackathon track **Agents You Can Audit**. Agents propose tool calls; Sentinel authenticates the agent, evaluates policy before dispatch, persists evidence in **MongoDB Atlas**, and lets a reviewer pause a run and inspect the decision tree.
+[Behavior monitors](docs/behavior-monitors.md) save phrase/status or semantic searches and identify ordered activity sequences as nodes arrive. Run `npm run demo:behaviors` for a missing-file → retry → recovery example.
+
+The observer records agent output in **MongoDB Atlas** and displays inferred activity and behavior matches. The earlier Phase 1 gateway APIs are retained for the original audit prototype.
 
 ## Stack
 
 | Layer | Path |
 | --- | --- |
-| UI (React + TS) | `web/` — layout from `sentinel-vertical-tree.html` |
+| UI (React + TS) | `web/` — stream observer |
 | API (Node + TS) | `api/` — Express gateway, SSE, change streams |
 | Data | Atlas collections: `agents`, `policies`, `runs`, `audit_events`, `demo_records` |
 | Setup / seed | `api/scripts/setup-seed.ts`, `api/scripts/verify-atlas.ts` |
 
 ## Quick start
 
-1. Copy `api/.env.example` to `api/.env` and `web/.env.example` to `web/.env`. Fill Atlas URI, GitHub demo owner/repo, and server-side token in `api/.env`. Match the reviewer key in both files.
+1. Copy `api/.env.example` to `api/.env` and configure the Atlas URI and server-side keys.
 2. Install: `npm ci`
 3. Atlas setup + fixtures: `npm run seed` (also creates collections, validators, and indexes)
 4. Verify sandbox: `npm run verify-atlas`
 5. Dev servers: `npm run dev` → UI [http://localhost:5173](http://localhost:5173), API `:3001`
-6. Click **Re-run demo (replay)**, or run `npm run verify-demo` in another terminal. Each replay creates one real synthetic GitHub issue in the configured repo.
+6. Click **Start / restart streaming demo**, or run `npm run demo:pipeline` in another terminal. Enter the observer key when prompted in the UI.
 
 ## Environment
 
@@ -31,21 +33,12 @@ See `api/.env.example` and `web/.env.example` for:
 - `MONGODB_URI`, `MONGODB_DB`
 - `SENTINEL_AGENT_KEY`, `SENTINEL_REVIEWER_KEY`
 - `GITHUB_TOKEN`, `GITHUB_DEMO_REPO`, `GITHUB_ALLOWED_OWNER`
-- `VITE_REVIEWER_KEY` (browser pause button)
 
-The API reads `api/.env` first, with legacy root `.env` as a fallback. Vite reads `web/.env`; never put Atlas credentials or GitHub tokens in `VITE_*` variables. Environment files are Git-ignored. The GitHub token needs Issues read/write and repository access. Private repositories are required by default; `GITHUB_REQUIRE_PRIVATE=false` explicitly permits synthetic demos in a public repository.
+The API reads `api/.env` first, with legacy root `.env` as a fallback. Never put Atlas credentials or GitHub tokens in `VITE_*` variables. Environment files are Git-ignored. The legacy GitHub integration requires an Issues read/write token and repository access.
 
 Phase 1 acceptance and team handoff: [docs/phase-1-handoff.md](docs/phase-1-handoff.md).
 
-## Demo walkthrough
-
-1. **Replay run** — Header shows **Replay mode**. Tree loads: Atlas read (allowed → verified), public GitHub write (denied → never dispatched), private repo write (allowed → verified after read-back).
-2. **Policy denial** — Red callout links to the denied node; inspector shows rule, redacted input, and **Never dispatched** (GitHub adapter not called for the public target).
-3. **Pause** — **Pause run** (reviewer bearer token) writes `run.paused` + `reviewer.intervention` to `audit_events`.
-4. **Queued write** — **Attempt queued write** hits the real gateway; while paused, dispatch is blocked with reason `run_paused`.
-5. **Live updates** — `audit_events` change stream → SSE (`/api/events/stream`); refresh rebuilds the same run from Atlas (dedupe by event `_id`).
-
-## API surface
+## Legacy Phase 1 API surface
 
 - `GET /api/runs/demo` — current demo run + events
 - `GET /api/events/stream?runId=` — SSE audit feed
@@ -74,4 +67,4 @@ web/src/styles/sentinel.css
 
 ## Note on prototype file
 
-`sentinel-vertical-tree.html` is the visual reference (shared CSS with the React app). The live console replaces hard-coded states with API + SSE data.
+`sentinel-vertical-tree.html` is the visual reference for the earlier Phase 1 prototype.

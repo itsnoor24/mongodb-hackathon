@@ -16,8 +16,9 @@
     "demo:conversation": "tsx scripts/demo-text.ts --conversation",
     "demo:parsed": "tsx scripts/load-parsed-demo.ts",
     "demo:pipeline": "tsx scripts/demo-text.ts --conversation --with-output",
+    "demo:behaviors": "tsx scripts/demo-behaviors.ts",
     "nodes:embed": "tsx scripts/embed-nodes.ts",
-    "test:streams": "tsx --test tests/streams.test.ts"
+    "test:streams": "tsx --test tests/streams.test.ts tests/behaviors.test.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

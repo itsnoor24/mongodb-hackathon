@@ -30,7 +30,7 @@ export const config = {
   ollamaModel: optional("OLLAMA_MODEL", ""),
   nodeEmbeddingModel: optional("NODE_EMBEDDING_MODEL", "voyage-4-lite"),
   nodeEmbeddingIndex: optional("NODE_EMBEDDING_INDEX", "stream_nodes_semantic"),
-  behaviorSemanticIntervalMs: Math.max(22000, Number(optional("BEHAVIOR_SEMANTIC_INTERVAL_MS", "22000")) || 22000),
+  behaviorSemanticIntervalMs: Math.min(600000, Math.max(1000, Number(optional("BEHAVIOR_SEMANTIC_INTERVAL_MS", "22000")) || 22000)),
 };
 
 export function assertMongoConfigured(): void {

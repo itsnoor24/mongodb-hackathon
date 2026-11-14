@@ -41,6 +41,15 @@ async function main() {
     child.on("exit", code => code === 0 ? resolve() : reject(new Error(`Demo subprocess exited with code ${code}`)));
   });
   const inputDone = Promise.all([ended(producer), ended(consumer)]).then(() => {});
+  const abort = new AbortController();
+  process.on("message", message => {
+    if (message && typeof message === "object" && "type" in message && message.type === "restart") {
+      if (process.connected) process.disconnect();
+      abort.abort(new Error("Demo restarted"));
+      if (producer.exitCode === null) producer.kill();
+      if (consumer.exitCode === null) consumer.kill();
+    }
+  });
   // Avoid an unhandled rejection if database connection setup fails first.
   void inputDone.catch(() => {});
   const client = output ? new MongoClient(config.mongoUri) : undefined;
@@ -49,7 +58,7 @@ async function main() {
       await client.connect();
       console.log("Emitting precomputed nodes as their evidence arrives in Atlas...");
       const count = await streamLiveParsedOutput(client, client.db(config.dbName), id, expectedText, parsedFixture, {
-        inputDone,
+        inputDone, signal: abort.signal,
         onNode: (id, count, total) => { console.log(`Live Atlas node ${count}/${total}: ${id}`); },
       });
       console.log(`Demo complete: ${count} nodes emitted alongside input. http://localhost:5173/?stream=${encodeURIComponent(id)}`);
@@ -59,6 +68,7 @@ async function main() {
     if (consumer.exitCode === null) consumer.kill();
     await inputDone.catch(() => {});
     await client?.close();
+    if (process.connected) process.disconnect();
   }
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });
