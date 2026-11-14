@@ -6,6 +6,7 @@ import { COLLECTIONS } from "../db/schemas.js";
 import type { RunDoc } from "../types.js";
 import { processToolCall } from "../gateway/gateway.js";
 import { buildReplayProposals } from "./replay.js";
+import { runLiveAgent } from "./live.js";
 import { verifyGithubRepository } from "../tools/github-issue.js";
 
 export async function startDemoRun(
@@ -45,9 +46,21 @@ export async function startDemoRun(
     payload: { replayMode: replay, initiator: "hackathon-reviewer@example.com" },
   });
 
-  const proposals = buildReplayProposals(runId);
-  for (const proposal of proposals) {
-    await processToolCall(db, config.demoAgentId, proposal);
+  try {
+    if (replay) {
+      const proposals = buildReplayProposals(runId);
+      for (const proposal of proposals) {
+        await processToolCall(db, config.demoAgentId, proposal);
+      }
+    } else {
+      await runLiveAgent(db, runId);
+    }
+  } catch (error) {
+    await runs.updateOne(
+      { _id: runId },
+      { $set: { status: "failed", updatedAt: new Date() } },
+    );
+    throw error;
   }
 
   await runs.updateOne(

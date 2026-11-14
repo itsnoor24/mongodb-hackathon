@@ -5,9 +5,10 @@ interface Props {
   run: RunDoc | null;
   busy: boolean;
   onPause: () => void;
+  onResume: () => void;
 }
 
-export function RunHeader({ run, busy, onPause }: Props) {
+export function RunHeader({ run, busy, onPause, onResume }: Props) {
   const runNum = formatRunNumber(run?._id ?? "demo-run-001");
   const agent = formatAgentLabel(run?.agentId ?? "demo-agent-001");
   const status = run?.status ?? "running";
@@ -54,6 +55,16 @@ export function RunHeader({ run, busy, onPause }: Props) {
           >
             Pause run
           </button>
+          {status === "paused" && (
+            <button
+              type="button"
+              className="btn btn--pause"
+              disabled={busy}
+              onClick={onResume}
+            >
+              Resume run
+            </button>
+          )}
         </div>
       </section>
     </>

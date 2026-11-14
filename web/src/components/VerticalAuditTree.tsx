@@ -85,7 +85,7 @@ export function VerticalAuditTree({
             ) : (
               <div className="flow-card flow-card--allow flow-card--placeholder">
                 <span className="flow-card__title">Create private issue</span>
-                <span className="flow-card__meta">✓ Verified · GitHub</span>
+                <span className="flow-card__meta">No verified write yet</span>
               </div>
             )}
             {flow.queuedFollowUp && (

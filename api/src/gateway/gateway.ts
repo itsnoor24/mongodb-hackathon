@@ -105,6 +105,7 @@ export async function processToolCall(
       payload: {
         outcome: decision.allowed ? "allow" : "deny",
         policyId: decision.policyId,
+        policyName: policy.name,
         policyVersion: decision.policyVersion,
         matchedRule: decision.matchedRule,
         reason: decision.reason,
@@ -195,7 +196,12 @@ export async function processToolCall(
           executionOutcome,
           policyDecision: "allow",
           detail,
-          resultSummary: { title: record.title },
+          resultSummary: {
+            title: record.title,
+            ...(record.plantedInstruction
+              ? { plantedInstruction: record.plantedInstruction }
+              : {}),
+          },
         },
       });
     } else if (req.tool === "github.issue.create") {

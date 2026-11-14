@@ -1,15 +1,10 @@
 import { buildReplayProposals } from "./replay.js";
 import type { ToolCallRequest } from "../types.js";
-import { config } from "../config.js";
 
 /**
- * Pluggable model adapter. MVP uses deterministic replay proposals;
- * set MODEL_PROVIDER=openai to extend with live model output later.
+ * Deterministic proposal list. Live runs do not use this: startDemoRun calls
+ * runLiveAgent when replay is false, so each model turn can see the gateway result.
  */
 export async function proposeToolCalls(runId: string): Promise<ToolCallRequest[]> {
-  if (config.modelProvider === "deterministic" || !config.openaiApiKey) {
-    return buildReplayProposals(runId);
-  }
-  // Future: call OpenAI with tools schema, return proposals (still via gateway).
   return buildReplayProposals(runId);
 }

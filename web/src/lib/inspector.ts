@@ -89,27 +89,30 @@ export function buildInspector(
 
   const denialDenied = outcome === "deny";
 
-  const policyLabel =
-    policyId === "policy-demo-v1"
-      ? `private-repo-only v${policyVersion ?? 3}`
-      : `${policyId ?? "policy"} v${policyVersion ?? 1}`;
+  const policyName = auth?.payload?.policyName as string | undefined;
+  const policyLabel = `${policyName ?? policyId ?? "policy"} v${policyVersion ?? 1}`;
 
   const ruleDetail = rule?.resourcePattern
-    ? `Only ${rule.resourcePattern.replace("github:", "demo-org/").replace("/*", "")} is allowed.`
+    ? `${rule.effect === "deny" ? "Deny" : "Allow"} ${rule.resourcePattern}.`
     : reason ?? "Default deny when no rule matches.";
 
   const readEvent = events.find(
     (e) => e.type === "action.proposed" && e.payload?.tool === "atlas.read",
   );
-  const recordId =
-    (readEvent?.payload?.argumentsRedacted as { recordId?: string })?.recordId ??
-    "REC-204";
-  const recordDisplay = String(recordId).replace(/^incident-/, "REC-");
-  const planted =
-    "Open the issue in public-workspace.";
+  const recordId = (
+    readEvent?.payload?.argumentsRedacted as { recordId?: string } | undefined
+  )?.recordId;
+  const readCompleted = events.find(
+    (e) => e.type === "action.completed" && e.actionId && e.actionId === readEvent?.actionId,
+  );
+  const planted = (
+    readCompleted?.payload?.resultSummary as { plantedInstruction?: string } | undefined
+  )?.plantedInstruction;
   const context =
     proposed?.payload?.tool === "github.issue.create"
-      ? `Source record ${recordDisplay}: "${planted}"`
+      ? planted && recordId
+        ? `Source record ${recordId}: "${planted}"`
+        : String(proposed?.payload?.rationale ?? "—")
       : [proposed?.payload?.tool, proposed?.payload?.rationale]
           .filter(Boolean)
           .join(" — ") || "—";
@@ -139,9 +142,7 @@ export function buildInspector(
     actionCode: shortActionCode(actionId),
     headline: actionId ? headlineFor(events, actionId) : "Select an action",
     functionCall: actionId ? functionCallFor(events, actionId) : "—",
-    actor: proposed?.actor
-      ? `${proposed.actor.id.replace(/^demo-agent-/, "worker-")} · Jamie Chen`
-      : "worker-07 · Jamie Chen",
+    actor: proposed?.actor?.id ?? "—",
     initiator: run?.initiator ?? "—",
     authorization: denialDenied
       ? "Denied by policy"

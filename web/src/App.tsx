@@ -49,6 +49,27 @@ export default function App() {
     }
   }
 
+  async function resumeRun() {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/runs/${DEMO_RUN_ID}/resume`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${REVIEWER_KEY}`,
+          "X-Reviewer-Id": "demo-reviewer",
+        },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = (await res.json()) as { run: typeof run };
+      setRun(data.run);
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : "Resume failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function attemptQueuedWrite() {
     setBusy(true);
     setNotice(null);
@@ -76,23 +97,23 @@ export default function App() {
     }
   }
 
-  async function restartDemo() {
+  async function startDemo(replay: boolean) {
     setBusy(true);
     setNotice(null);
     try {
       const res = await fetch("/api/gateway/demo/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ replay: true }),
+        body: JSON.stringify({ replay }),
       });
       if (!res.ok) {
         const data = await res.json() as { error?: string };
-        throw new Error(data.error ?? "Replay failed");
+        throw new Error(data.error ?? (replay ? "Replay failed" : "Live agent failed"));
       }
       setSelectedActionId(null);
       await reload();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Replay failed");
+      setNotice(error instanceof Error ? error.message : "Demo failed");
     } finally {
       setBusy(false);
     }
@@ -100,7 +121,12 @@ export default function App() {
 
   return (
     <div className="sentinel-app">
-      <RunHeader run={run} busy={busy} onPause={() => void pauseRun()} />
+      <RunHeader
+        run={run}
+        busy={busy}
+        onPause={() => void pauseRun()}
+        onResume={() => void resumeRun()}
+      />
 
       {loading && <p className="banner banner--info">Loading run from Atlas…</p>}
       {error && <p className="banner banner--error">{error}</p>}
@@ -129,9 +155,17 @@ export default function App() {
               type="button"
               className="btn btn--ghost"
               disabled={busy}
-              onClick={() => void restartDemo()}
+              onClick={() => void startDemo(true)}
             >
               Re-run demo (replay)
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              disabled={busy}
+              onClick={() => void startDemo(false)}
+            >
+              Run live agent
             </button>
           </div>
         </section>
