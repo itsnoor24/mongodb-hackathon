@@ -78,13 +78,24 @@ export default function App() {
 
   async function restartDemo() {
     setBusy(true);
-    await fetch("/api/gateway/demo/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ replay: true }),
-    });
-    await reload();
-    setBusy(false);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/gateway/demo/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ replay: true }),
+      });
+      if (!res.ok) {
+        const data = await res.json() as { error?: string };
+        throw new Error(data.error ?? "Replay failed");
+      }
+      setSelectedActionId(null);
+      await reload();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Replay failed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (

@@ -10,7 +10,8 @@
     "dev": "concurrently -n api,web -c blue,green \"npm run dev -w api\" \"npm run dev -w web\"",
     "build": "npm run build -w api && npm run build -w web",
     "seed": "npm run seed -w api",
-    "verify-atlas": "npm run verify-atlas -w api"
+    "verify-atlas": "npm run verify-atlas -w api",
+    "verify-demo": "npm run verify-demo -w api"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

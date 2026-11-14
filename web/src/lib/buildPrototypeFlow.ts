@@ -86,13 +86,16 @@ export function buildPrototypeFlow(events: AuditEvent[]): PrototypeFlow {
       };
     } else if (a?.payload?.outcome === "allow") {
       const issueNum = c?.payload?.issueNumber as number | undefined;
+      const verified = c?.payload?.executionOutcome === "verified";
       privateWrite = {
         actionId: id,
         title: "Create private issue",
-        meta: issueNum
+        meta: verified && issueNum
           ? `✓ Verified · GitHub #${issueNum}`
-          : "✓ Verified · GitHub",
-        variant: "allow",
+          : c?.payload?.executionOutcome === "failed"
+            ? "Failed · GitHub"
+            : "Awaiting verification · GitHub",
+        variant: verified ? "allow" : "neutral",
       };
     }
   }

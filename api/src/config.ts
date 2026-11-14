@@ -1,10 +1,10 @@
-import "dotenv/config";
+import { config as loadEnv } from "dotenv";
+import { fileURLToPath } from "node:url";
 
-function required(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing required env: ${name}`);
-  return v;
-}
+// Resolve from the module so source, compiled API, and npm workspaces agree.
+loadEnv({ path: fileURLToPath(new URL("../.env", import.meta.url)) });
+// Retain root .env compatibility; api/.env takes precedence.
+loadEnv({ path: fileURLToPath(new URL("../../.env", import.meta.url)) });
 
 function optional(name: string, fallback: string): string {
   return process.env[name] ?? fallback;
@@ -20,6 +20,7 @@ export const config = {
   githubOwner: optional("GITHUB_DEMO_OWNER", ""),
   githubRepo: optional("GITHUB_DEMO_REPO", ""),
   githubAllowedOwner: optional("GITHUB_ALLOWED_OWNER", ""),
+  githubRequirePrivate: optional("GITHUB_REQUIRE_PRIVATE", "true") !== "false",
   modelProvider: optional("MODEL_PROVIDER", "deterministic"),
   openaiApiKey: optional("OPENAI_API_KEY", ""),
   openaiModel: optional("OPENAI_MODEL", "gpt-4o-mini"),
@@ -30,7 +31,7 @@ export const config = {
 export function assertMongoConfigured(): void {
   if (!config.mongoUri) {
     throw new Error(
-      "MONGODB_URI is not set. Add Atlas sandbox connection string to .env",
+      "MONGODB_URI is not set. Add the Atlas connection string to api/.env",
     );
   }
 }

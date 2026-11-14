@@ -13,21 +13,25 @@ Use-case-agnostic **agent audit console** for the MongoDB hackathon track **Agen
 
 ## Quick start
 
-1. Copy env: `cp .env.example .env` and fill `MONGODB_URI`, GitHub private demo repo, and tokens.
-2. Install: `npm install`
-3. Atlas setup + fixtures: `npm run setup && npm run seed`
+1. Copy `api/.env.example` to `api/.env` and `web/.env.example` to `web/.env`. Fill Atlas URI, GitHub demo owner/repo, and server-side token in `api/.env`. Match the reviewer key in both files.
+2. Install: `npm ci`
+3. Atlas setup + fixtures: `npm run seed` (also creates collections, validators, and indexes)
 4. Verify sandbox: `npm run verify-atlas`
-5. Start demo run (replay): `curl -X POST http://localhost:3001/api/gateway/demo/start`
-6. Dev servers: `npm run dev` → UI [http://localhost:5173](http://localhost:5173), API `:3001`
+5. Dev servers: `npm run dev` → UI [http://localhost:5173](http://localhost:5173), API `:3001`
+6. Click **Re-run demo (replay)**, or run `npm run verify-demo` in another terminal. Each replay creates one real synthetic GitHub issue in the configured repo.
 
 ## Environment
 
-See `.env.example` for:
+See `api/.env.example` and `web/.env.example` for:
 
 - `MONGODB_URI`, `MONGODB_DB`
 - `SENTINEL_AGENT_KEY`, `SENTINEL_REVIEWER_KEY`
 - `GITHUB_TOKEN`, `GITHUB_DEMO_REPO`, `GITHUB_ALLOWED_OWNER`
 - `VITE_REVIEWER_KEY` (browser pause button)
+
+The API reads `api/.env` first, with legacy root `.env` as a fallback. Vite reads `web/.env`; never put Atlas credentials or GitHub tokens in `VITE_*` variables. Environment files are Git-ignored. The GitHub token needs Issues read/write and repository access. Private repositories are required by default; `GITHUB_REQUIRE_PRIVATE=false` explicitly permits synthetic demos in a public repository.
+
+Phase 1 acceptance and team handoff: [docs/phase-1-handoff.md](docs/phase-1-handoff.md).
 
 ## Demo walkthrough
 

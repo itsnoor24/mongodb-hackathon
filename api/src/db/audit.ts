@@ -13,12 +13,13 @@ export async function appendAuditEvent(
     runId: event.runId,
     type: event.type,
     actor: event.actor,
-    actionId: event.actionId,
-    parentActionId: event.parentActionId,
-    payload: event.payload,
+    ...(event.actionId !== undefined ? { actionId: event.actionId } : {}),
+    ...(event.parentActionId !== undefined ? { parentActionId: event.parentActionId } : {}),
+    ...(event.payload !== undefined ? { payload: event.payload } : {}),
   };
   await db.collection<AuditEventDoc>(COLLECTIONS.audit_events).insertOne(
     doc as AuditEventDoc & { _id: string },
+    { ignoreUndefined: true },
   );
   return doc;
 }
