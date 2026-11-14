@@ -13,32 +13,36 @@ export interface ActivityNode {
 
 const CARD_WIDTH = 244;
 const CARD_HEIGHT = 116;
-const COLUMN = 320;
-const ROW = 144;
+const GROUP_PAD = 18;
+const GROUP_GAP = 16;
+const GROUP_LABEL = 26;
+interface TaskGroup {
+  id: string;
+  kind: string;
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 const humanize = (value: string) => value.replaceAll("_", " ");
+const groupCaption = (group: TaskGroup) => {
+  const max = Math.max(16, Math.floor((group.width - 36) / 7.2));
+  return group.label.length > max ? `${group.label.slice(0, max - 1)}…` : group.label;
+};
 
 export function ActivityDiagram({ nodes, focusRequest }: { nodes: ActivityNode[]; focusRequest?: { id: string; requestId: number } }) {
   const markerId = useId();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [followLatest, setFollowLatest] = useState(true);
-  const [viewportHeight, setViewportHeight] = useState(400);
   const viewportRef = useRef<HTMLDivElement>(null);
   const knownIds = useRef(new Set<string>());
   const latestId = useRef<string | null>(null);
   const cards = useRef(new Map<string, HTMLButtonElement>());
   const lastFocus = useRef<typeof focusRequest>(undefined);
-  const rowsPerColumn = Math.max(1, Math.floor((viewportHeight / zoom - 48 - CARD_HEIGHT) / ROW) + 1);
   const nodeLayoutKey = JSON.stringify(nodes.map(node => [node.id, node.parentId]));
-  useEffect(() => {
-    const pane = viewportRef.current;
-    if (!pane) return;
-    const update = () => setViewportHeight(pane.clientHeight);
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(pane);
-    return () => observer.disconnect();
-  }, []);
   useEffect(() => {
     const additions = nodes.filter(node => !knownIds.current.has(node.id));
     knownIds.current = new Set(nodes.map(node => node.id));
@@ -68,7 +72,7 @@ export function ActivityDiagram({ nodes, focusRequest }: { nodes: ActivityNode[]
         behavior: "smooth",
       });
     }
-  }, [focusRequest, nodeLayoutKey, followLatest, zoom, rowsPerColumn]);
+  }, [focusRequest, nodeLayoutKey, followLatest, zoom]);
   const selected = nodes.find(node => node.id === selectedId);
   const byId = new Map(nodes.map(node => [node.id, node]));
   const children = new Map<string, ActivityNode[]>();
@@ -80,18 +84,59 @@ export function ActivityDiagram({ nodes, focusRequest }: { nodes: ActivityNode[]
     }
   }
   const positions = new Map<string, { x: number; y: number }>();
-  let index = 0;
-  function place(node: ActivityNode) {
-    if (positions.has(node.id)) return;
-    positions.set(node.id, { x: 24 + Math.floor(index / rowsPerColumn) * COLUMN, y: 24 + (index % rowsPerColumn) * ROW });
-    index++;
-    for (const child of children.get(node.id) ?? []) place(child);
+  const groups: TaskGroup[] = [];
+  const rowLimit = CARD_WIDTH * 4 + GROUP_GAP * 3;
+  interface LaidOut { width: number; height: number; positions: Map<string, { x: number; y: number }>; groups: TaskGroup[] }
+  function layout(node: ActivityNode): LaidOut {
+    const kids = children.get(node.id) ?? [];
+    if (kids.length === 0) return { width: CARD_WIDTH, height: CARD_HEIGHT, positions: new Map([[node.id, { x: 0, y: 0 }]]), groups: [] };
+    const rows: { items: LaidOut[]; width: number; height: number }[] = [];
+    for (const item of kids.map(layout)) {
+      const row = rows.at(-1);
+      if (!row || row.width + GROUP_GAP + item.width > rowLimit) rows.push({ items: [item], width: item.width, height: item.height });
+      else { row.items.push(item); row.width += GROUP_GAP + item.width; row.height = Math.max(row.height, item.height); }
+    }
+    const innerWidth = Math.max(CARD_WIDTH, ...rows.map(row => row.width));
+    const laid: LaidOut = { width: 0, height: 0, positions: new Map(), groups: [] };
+    laid.positions.set(node.id, { x: GROUP_PAD + (innerWidth - CARD_WIDTH) / 2, y: GROUP_PAD + GROUP_LABEL });
+    let cursorY = GROUP_PAD + GROUP_LABEL + CARD_HEIGHT + GROUP_GAP;
+    for (const row of rows) {
+      let cursorX = GROUP_PAD;
+      for (const item of row.items) {
+        for (const [id, point] of item.positions) laid.positions.set(id, { x: point.x + cursorX, y: point.y + cursorY });
+        for (const group of item.groups) laid.groups.push({ ...group, x: group.x + cursorX, y: group.y + cursorY });
+        cursorX += item.width + GROUP_GAP;
+      }
+      cursorY += row.height + GROUP_GAP;
+    }
+    laid.width = innerWidth + GROUP_PAD * 2;
+    laid.height = cursorY - GROUP_GAP + GROUP_PAD;
+    laid.groups.push({ id: node.id, kind: node.kind, label: node.label, x: 0, y: 0, width: laid.width, height: laid.height });
+    return laid;
   }
-  for (const node of nodes.filter(node => !node.parentId || !byId.has(node.parentId))) place(node);
-  // Keep disconnected or malformed nodes inspectable as well.
-  for (const node of nodes) if (!positions.has(node.id)) place(node);
-  const width = Math.max(340, ...[...positions.values()].map(p => p.x + CARD_WIDTH + 24));
-  const height = Math.max(180, ...[...positions.values()].map(p => p.y + CARD_HEIGHT + 24));
+  function place(node: ActivityNode, x: number, y: number) {
+    const laid = layout(node);
+    for (const [id, point] of laid.positions) positions.set(id, { x: point.x + x, y: point.y + y });
+    for (const group of laid.groups) groups.push({ ...group, x: group.x + x, y: group.y + y });
+    return laid;
+  }
+  const roots = nodes.filter(node => !node.parentId || !byId.has(node.parentId));
+  let cursorX = 24;
+  let contentHeight = 180;
+  for (const root of roots) {
+    const size = place(root, cursorX, 24);
+    cursorX += size.width + 28;
+    contentHeight = Math.max(contentHeight, size.height + 48);
+  }
+  for (const node of nodes) {
+    if (positions.has(node.id)) continue;
+    const size = place(node, cursorX, 24);
+    cursorX += size.width + 28;
+    contentHeight = Math.max(contentHeight, size.height + 48);
+  }
+  const width = Math.max(340, cursorX);
+  const height = contentHeight;
+  const groupLayers = [...groups].sort((a, b) => b.width * b.height - a.width * a.height);
 
   return <div className="activity-diagram">
     <div className="activity-diagram__toolbar">
@@ -105,24 +150,29 @@ export function ActivityDiagram({ nodes, focusRequest }: { nodes: ActivityNode[]
       </div>
       </div>
     </div>
-    <p className="activity-diagram__hint">Arrows connect parent to child. Select an activity to inspect its source.</p>
+    <p className="activity-diagram__hint">A colored region groups a step with the work under it. Select a box to read its source.</p>
     <div ref={viewportRef} className="activity-diagram__viewport" tabIndex={0} role="region" aria-label="Scrollable activity diagram">
       <svg width={width * zoom} height={height * zoom} viewBox={`0 0 ${width} ${height}`} aria-label="Observed activity hierarchy">
         <defs><marker id={markerId} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1 L7 4 L1 7" fill="none" stroke="currentColor" strokeWidth="1.5" /></marker></defs>
+        <g className="activity-diagram__groups">
+          {groupLayers.map(group => <g key={group.id}>
+            <rect className="activity-group" data-kind={group.kind} x={group.x} y={group.y} width={group.width} height={group.height} rx="18" />
+            <text className="activity-group__label" x={group.x + 16} y={group.y + 20}>{groupCaption(group)}</text>
+          </g>)}
+        </g>
         <g className="activity-diagram__edges" aria-hidden="true">
           {nodes.map(node => {
             const parent = node.parentId ? positions.get(node.parentId) : undefined;
             const child = positions.get(node.id)!;
             if (!parent || parent === child) return null;
-            const startX = parent.x + CARD_WIDTH;
-            const startY = parent.y + CARD_HEIGHT / 2;
-            const endY = child.y + CARD_HEIGHT / 2;
-            if (parent.x === child.x) {
-              const gutter = startX + 14;
-              return <path key={node.id} d={`M${startX} ${startY} H${gutter} V${endY} H${child.x + CARD_WIDTH + 5}`} markerEnd={`url(#${markerId})`} />;
-            }
-            const middle = startX + (child.x - startX) / 2;
-            return <path key={node.id} d={`M${startX} ${startY} H${middle} V${endY} H${child.x - 5}`} markerEnd={`url(#${markerId})`} />;
+            const startX = parent.x + CARD_WIDTH / 2;
+            const startY = parent.y + CARD_HEIGHT;
+            const endX = child.x + CARD_WIDTH / 2;
+            const endY = child.y;
+            const path = Math.abs(startX - endX) < 8
+              ? `M${startX} ${startY} V${endY - 6}`
+              : `M${startX} ${startY} V${startY + (endY - startY) / 2} H${endX} V${endY - 6}`;
+            return <path key={node.id} d={path} markerEnd={`url(#${markerId})`} />;
           })}
         </g>
         {nodes.map(node => {
