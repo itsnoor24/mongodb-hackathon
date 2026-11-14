@@ -10,7 +10,14 @@
     "setup": "tsx scripts/setup-seed.ts setup",
     "seed": "tsx scripts/setup-seed.ts seed",
     "verify-atlas": "tsx scripts/verify-atlas.ts",
-    "verify-demo": "tsx scripts/verify-demo.ts"
+    "verify-demo": "tsx scripts/verify-demo.ts",
+    "consume-text": "tsx scripts/consume-text.ts",
+    "demo:text": "tsx scripts/demo-text.ts",
+    "demo:conversation": "tsx scripts/demo-text.ts --conversation",
+    "demo:parsed": "tsx scripts/load-parsed-demo.ts",
+    "demo:pipeline": "tsx scripts/demo-text.ts --conversation --with-output",
+    "nodes:embed": "tsx scripts/embed-nodes.ts",
+    "test:streams": "tsx --test tests/streams.test.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -26,6 +26,11 @@ export const config = {
   openaiModel: optional("OPENAI_MODEL", "gpt-4o-mini"),
   demoRunId: optional("DEMO_RUN_ID", "demo-run-001"),
   demoAgentId: optional("DEMO_AGENT_ID", "demo-agent-001"),
+  ollamaUrl: optional("OLLAMA_URL", "http://127.0.0.1:11434"),
+  ollamaModel: optional("OLLAMA_MODEL", ""),
+  nodeEmbeddingModel: optional("NODE_EMBEDDING_MODEL", "voyage-4-lite"),
+  nodeEmbeddingIndex: optional("NODE_EMBEDDING_INDEX", "stream_nodes_semantic"),
+  behaviorSemanticIntervalMs: Math.max(22000, Number(optional("BEHAVIOR_SEMANTIC_INTERVAL_MS", "22000")) || 22000),
 };
 
 export function assertMongoConfigured(): void {

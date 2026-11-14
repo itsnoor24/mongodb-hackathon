@@ -1,5 +1,9 @@
 # Sentinel
 
+On the `steffen/text-stream-local-llm` branch, the default UI is the passive text-stream observer. See [text stream setup and API](docs/text-streams.md). The Phase 1 replay console is available at `/?mode=replay`.
+
+Parsed nodes support [Atlas-managed Voyage embeddings and semantic retrieval](docs/node-embeddings.md). Run `npm run nodes:embed` once to backfill existing node text and create the embedding index.
+
 Use-case-agnostic **agent audit console** for the MongoDB hackathon track **Agents You Can Audit**. Agents propose tool calls; Sentinel authenticates the agent, evaluates policy before dispatch, persists evidence in **MongoDB Atlas**, and lets a reviewer pause a run and inspect the decision tree.
 
 ## Stack

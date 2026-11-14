@@ -7,11 +7,16 @@ import { useRunData } from "./hooks/useRunData";
 import { buildPrototypeFlow } from "./lib/buildPrototypeFlow";
 import { buildInspector } from "./lib/inspector";
 import { findDenialActionId } from "./lib/buildTree";
+import { StreamConsole } from "./components/StreamConsole";
 
 const DEMO_RUN_ID = "demo-run-001";
 const REVIEWER_KEY = import.meta.env.VITE_REVIEWER_KEY ?? "demo-reviewer-key-change-me";
 
 export default function App() {
+  return new URLSearchParams(location.search).get("mode") === "replay" ? <ReplayApp /> : <StreamConsole />;
+}
+
+function ReplayApp() {
   const { run, events, loading, error, reload, setRun } =
     useRunData(DEMO_RUN_ID);
   const [selectedActionId, setSelectedActionId] = useState<string | null>(null);

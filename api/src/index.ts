@@ -5,6 +5,9 @@ import { runsRouter } from "./routes/runs.js";
 import { pauseRouter } from "./routes/pause.js";
 import { gatewayRouter } from "./routes/gateway.js";
 import { registerSseClient } from "./sse/audit-stream.js";
+import { streamsRouter } from "./routes/streams.js";
+import { behaviorsRouter } from "./routes/behaviors.js";
+import { startBehaviorWorker } from "./behaviors/worker.js";
 
 const app = express();
 app.use(cors());
@@ -17,6 +20,8 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/runs", runsRouter);
 app.use("/api/runs", pauseRouter);
 app.use("/api/gateway", gatewayRouter);
+app.use("/api/streams", streamsRouter);
+app.use("/api/behaviors", behaviorsRouter);
 
 app.get("/api/events/stream", (req, res) => {
   const runId = (req.query.runId as string) ?? config.demoRunId;
@@ -25,4 +30,5 @@ app.get("/api/events/stream", (req, res) => {
 
 app.listen(config.port, () => {
   console.log(`Sentinel API listening on :${config.port}`);
+  if (config.mongoUri) startBehaviorWorker();
 });
