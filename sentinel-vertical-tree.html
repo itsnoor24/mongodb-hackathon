@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sentinel — Vertical tree prototype</title>
+    <link rel="stylesheet" href="web/src/styles/sentinel.css" />
+  </head>
+  <body>
+    <div class="sentinel-app">
+      <header class="sentinel-header">
+        <div class="sentinel-header__brand">
+          <span class="sentinel-logo"></span>
+          <h1>Sentinel</h1>
+          <span class="sentinel-header__tag">Agent audit console (static prototype)</span>
+        </div>
+        <div class="sentinel-header__status">
+          <span class="badge badge--replay">Replay mode</span>
+          <span class="badge badge--running">Run running</span>
+          <button type="button" class="btn btn--danger">Pause run</button>
+        </div>
+      </header>
+      <main class="sentinel-canvas">
+        <section class="canvas-pane canvas-pane--tree">
+          <div class="policy-callout" role="alert">
+            <p class="policy-callout__text">Policy denied an external write before dispatch.</p>
+            <button type="button" class="policy-callout__link">View denied action</button>
+          </div>
+          <div class="decision-tree">
+            <button class="tree-node tree-node--root" type="button">Agent run</button>
+            <div class="tree-branch" style="margin-left: 12px">
+              <button class="tree-node tree-node--action" type="button">Read Atlas record</button>
+              <div class="tree-branch" style="margin-left: 12px">
+                <button class="tree-node tree-node--decision" type="button">
+                  <span class="diamond"></span> Policy check
+                </button>
+                <div class="tree-branch" style="margin-left: 12px">
+                  <button class="tree-node tree-node--branch" type="button">Allow</button>
+                  <button class="tree-node tree-node--outcome" type="button">Verified</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="queued-controls">
+            <p class="queued-controls__label">Queued write</p>
+            <button type="button" class="btn btn--primary">Attempt queued write</button>
+          </div>
+        </section>
+        <section class="canvas-pane canvas-pane--inspector">
+          <aside class="inspector">
+            <h2 class="inspector__title">Action inspector</h2>
+            <dl class="inspector__grid">
+              <dt>Actor</dt><dd>agent · demo-agent-001</dd>
+              <dt>Run initiator</dt><dd>hackathon-reviewer@example.com</dd>
+              <dt>Authorization</dt><dd>Denied</dd>
+              <dt>Rule</dt><dd>DENY · github:*/**</dd>
+              <dt>Context</dt><dd>github.issue.create — public target</dd>
+              <dt>Execution outcome</dt><dd>Never dispatched</dd>
+            </dl>
+          </aside>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
