@@ -1,70 +1,58 @@
 # Sentinel
 
-The UI is a passive text-stream observer. See [text stream setup and API](docs/text-streams.md).
+Sentinel turns a live agent log into a record of what the agent was doing. The raw transcript stays. Next to it, an activity tree shows each observed step, and behavior monitors flag sequences you care about while the run is still going.
 
-Parsed nodes support [Atlas-managed Voyage embeddings and semantic retrieval](docs/node-embeddings.md). Run `npm run nodes:embed` once to backfill existing node text and create the embedding index.
 
-[Behavior monitors](docs/behavior-monitors.md) save phrase/status or semantic searches and identify ordered activity sequences as nodes arrive. Run `npm run demo:behaviors` for a missing-file → retry → recovery example.
+## The problem
 
-The observer records agent output in **MongoDB Atlas** and displays inferred activity and behavior matches. The earlier Phase 1 gateway APIs are retained for the original audit prototype.
+**AI agents are doing more. Understanding what they did is getting harder.**
+
+- **Unstructured execution logs.** Plans, tool calls, errors, and status updates are buried in continuous streams of text.
+- **No clear picture of agent activity.** It's difficult to reconstruct what happened, in what order, and where things went wrong.
+- **Important patterns go unnoticed.** Failures, retries, and recoveries can be scattered across hundreds of log lines.
+
+Agents generate logs. But logs don't tell the whole story.
+
+## The solution
+
+**From raw agent logs to observable behavior.**
+
+1. **Capture.** Stream agent output into MongoDB Atlas in real time. Any agent's printed output is saved as it arrives, before it is summarized.
+2. **Reconstruct.** Parse logs into an interactive activity tree, with source-linked evidence. Each step has a label, a status, and a quote copied from the transcript.
+3. **Understand.** Generate searchable embeddings using Atlas Vector Search. Atlas embeds each step, so related activity can be found by meaning.
+4. **Detect.** Monitor ordered behavior patterns and flag matches. A monitor can be one signal, such as a missing file, or a sequence, such as a failure followed by a retry and a recovery.
+
+One transcript. Every observed step. Searchable and traceable.
 
 ## Stack
 
-| Layer | Path |
+| | |
 | --- | --- |
-| UI (React + TS) | `web/` — stream observer |
-| API (Node + TS) | `api/` — Express gateway, SSE, change streams |
-| Data | Atlas collections: `agents`, `policies`, `runs`, `audit_events`, `demo_records` |
-| Setup / seed | `api/scripts/setup-seed.ts`, `api/scripts/verify-atlas.ts` |
+| Interface | React, TypeScript, Vite |
+| API | Node.js, Express, TypeScript |
+| Database | MongoDB Atlas |
+| Search | Atlas Vector Search with Voyage embeddings (`voyage-4-lite`) |
+| Optional parsing | A local Ollama model. The bundled demo does not need one. |
 
-## Quick start
+Requires Node.js 22 or newer.
 
-1. Copy `api/.env.example` to `api/.env` and configure the Atlas URI and server-side keys.
-2. Install: `npm ci`
-3. Atlas setup + fixtures: `npm run seed` (also creates collections, validators, and indexes)
-4. Verify sandbox: `npm run verify-atlas`
-5. Dev servers: `npm run dev` → UI [http://localhost:5173](http://localhost:5173), API `:3001`
-6. Click **Start / restart streaming demo**, or run `npm run demo:pipeline` in another terminal. Enter the observer key when prompted in the UI.
+## Run it
 
-## Environment
+1. Copy `api/.env.example` to `api/.env` and set `MONGODB_URI`, `SENTINEL_AGENT_KEY`, and `SENTINEL_REVIEWER_KEY`.
+2. `npm ci`
+3. `npm run seed`
+4. `npm run nodes:embed` once per Atlas cluster, then wait until the vector index is queryable.
+5. `npm run dev`
+6. Open [http://localhost:5173](http://localhost:5173), enter the reviewer key, and start the streaming demo.
 
-See `api/.env.example` and `web/.env.example` for:
+API health check: [http://localhost:3001/api/health](http://localhost:3001/api/health).
 
-- `MONGODB_URI`, `MONGODB_DB`
-- `SENTINEL_AGENT_KEY`, `SENTINEL_REVIEWER_KEY`
-- `GITHUB_TOKEN`, `GITHUB_DEMO_REPO`, `GITHUB_ALLOWED_OWNER`
+To watch a real command instead of the demo:
 
-The API reads `api/.env` first, with legacy root `.env` as a fallback. Never put Atlas credentials or GitHub tokens in `VITE_*` variables. Environment files are Git-ignored. The legacy GitHub integration requires an Issues read/write token and repository access.
-
-Phase 1 acceptance and team handoff: [docs/phase-1-handoff.md](docs/phase-1-handoff.md).
-
-## Legacy Phase 1 API surface
-
-- `GET /api/runs/demo` — current demo run + events
-- `GET /api/events/stream?runId=` — SSE audit feed
-- `POST /api/runs/:id/pause` — reviewer auth
-- `POST /api/gateway/invoke` — agent tool proposal through gateway
-- `POST /api/gateway/queued-write/:runId` — console queued write
-- `POST /api/gateway/demo/start` — deterministic replay through gateway
-
-## Implementation map
-
-```
-api/src/db/schemas.ts      # $jsonSchema validators
-api/scripts/setup-seed.ts  # collections, indexes, seed
-api/src/gateway/gateway.ts # authz → log → dispatch boundary
-api/src/gateway/policy.ts  # rule matching, redaction
-api/src/tools/*.ts         # Atlas read, GitHub issue + verify
-api/src/agent/replay.ts    # deterministic proposals
-api/src/sse/audit-stream.ts
-web/src/App.tsx            # console shell
-web/src/styles/sentinel.css
+```sh
+your-agent-command | npm run consume-text
 ```
 
-## Atlas verification
+Other scripts: `npm run demo:pipeline` (the full recorded conversation), `npm run demo:behaviors` (a missing-file, retry, and recovery example), `npm run test:streams`.
 
-`npm run verify-atlas` checks connect, validator rejection, insert, and change stream. If you see **not authorized**, the sandbox may block `collMod`, change streams, or `createCollection` — note that in your hackathon submission.
 
-## Note on prototype file
-
-`sentinel-vertical-tree.html` is the visual reference for the earlier Phase 1 prototype.
