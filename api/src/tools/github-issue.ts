@@ -12,6 +12,25 @@ export interface CreateIssueResult {
   url: string;
 }
 
+/** Validate the configured demo target before resetting a run or issuing a write. */
+export async function verifyGithubRepository(): Promise<void> {
+  if (!config.githubToken) throw new Error("Set GITHUB_TOKEN in api/.env");
+  const owner = config.githubAllowedOwner || config.githubOwner;
+  if (!owner || !config.githubRepo) throw new Error("Set GITHUB_ALLOWED_OWNER and GITHUB_DEMO_REPO in api/.env");
+  const res = await fetch(`https://api.github.com/repos/${owner}/${config.githubRepo}`, {
+    headers: {
+      Authorization: `Bearer ${config.githubToken}`,
+      Accept: "application/vnd.github+json",
+      "User-Agent": "sentinel-hackathon-demo",
+    },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`GitHub repository access failed (${res.status})`);
+  const repo = await res.json() as { private: boolean; has_issues: boolean };
+  if (config.githubRequirePrivate && !repo.private) throw new Error("Demo repo must be private; explicitly set GITHUB_REQUIRE_PRIVATE=false for synthetic public demos");
+  if (!repo.has_issues) throw new Error("Enable GitHub Issues on the demo repository");
+}
+
 export async function githubCreateIssue(
   args: CreateIssueArgs,
 ): Promise<CreateIssueResult> {
@@ -55,5 +74,7 @@ export async function githubVerifyIssue(
       },
     },
   );
-  return res.ok;
+  if (!res.ok) return false;
+  const issue = await res.json() as { number?: number; pull_request?: unknown };
+  return issue.number === issueNumber && !issue.pull_request;
 }

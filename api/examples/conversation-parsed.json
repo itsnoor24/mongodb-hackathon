@@ -1,0 +1,229 @@
+{
+  "nodes": [
+    {
+      "id": "sentinel",
+      "parentId": null,
+      "label": "Sentinel: setup and passive observation",
+      "kind": "other",
+      "status": "in_progress",
+      "summary": "The conversation moves from setting up Sentinel’s Atlas/GitHub environment to observing text streams and producing structured activity nodes. Real local-model parsing remains pending.",
+      "evidence": "I want it to watch a stream of output from an agent and push updates to atals as nodes are filled in/created."
+    },
+    {
+      "id": "repo-review",
+      "parentId": "sentinel",
+      "label": "Review the repository",
+      "kind": "message",
+      "status": "completed",
+      "summary": "The assistant describes Sentinel as a React/Express audit-console prototype with an Atlas-backed gateway and deterministic demo replay.",
+      "evidence": "This repo is **Sentinel**, a hackathon prototype for auditing AI agent actions."
+    },
+    {
+      "id": "atlas-setup",
+      "parentId": "sentinel",
+      "label": "Connect the application to Atlas",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "The assistant reports the Sentinel project, free cluster, scoped database user, collections, and working application connection. This is a reported outcome from the transcript.",
+      "evidence": "Done—Atlas is connected to the repo."
+    },
+    {
+      "id": "atlas-orgs",
+      "parentId": "atlas-setup",
+      "label": "Find organizations and select Claudia’s org",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "Two organizations were reported; the user chose Claudia’s organization using the MongoDB Atlas connection.",
+      "evidence": "Claudia's Org - 2026-11-14 · MongoDB Atlas account"
+    },
+    {
+      "id": "atlas-permission-error",
+      "parentId": "atlas-setup",
+      "label": "Initial project creation permission error",
+      "kind": "error",
+      "status": "failed",
+      "summary": "The initial attempt lacked the Project Creator role. This historical failure was followed by a successful retry; it is not the current overall setup status.",
+      "evidence": "the connected credentials lack the organization’s **Project Creator** role."
+    },
+    {
+      "id": "atlas-provision",
+      "parentId": "atlas-setup",
+      "label": "Create the project, cluster, and database user",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "After the user requested another attempt, the assistant reported creating a free cluster and a user scoped to the sentinel database.",
+      "evidence": "The project and free cluster were created successfully."
+    },
+    {
+      "id": "atlas-index-error",
+      "parentId": "atlas-setup",
+      "label": "Unsupported built-in index declaration",
+      "kind": "error",
+      "status": "failed",
+      "summary": "Setup initially failed when it attempted to recreate the built-in _id index with an unsupported option. Later setup and verification were reported successful.",
+      "evidence": "it tries to recreate MongoDB’s built-in `_id` index with an unsupported option."
+    },
+    {
+      "id": "atlas-checks",
+      "parentId": "atlas-setup",
+      "label": "Verify Atlas reads, validation, and change streams",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "The assistant reports passing connectivity, valid insert, invalid-event rejection, change-stream, and seeded-run checks.",
+      "evidence": "Atlas verification passed: the app can connect, insert records, reject invalid audit events, and receive change-stream updates."
+    },
+    {
+      "id": "phase1",
+      "parentId": "sentinel",
+      "label": "Complete and push the Phase 1 environment",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "The transcript reports pushing the Atlas/GitHub environment setup to steffen/connect_mongo at commit e75ace9.",
+      "evidence": "Pushed Phase 1 to `steffen/connect_mongo` — commit `e75ace9`."
+    },
+    {
+      "id": "phase1-database-fixes",
+      "parentId": "phase1",
+      "label": "Fix policy BSON types and optional audit fields",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "Policy version/priority were explicitly stored as BSON Int32, undefined audit fields were omitted, and rule matching/priority were corrected.",
+      "evidence": "policy version and priority values now use BSON `Int32`, and audit inserts omit undefined fields."
+    },
+    {
+      "id": "phase1-target",
+      "parentId": "phase1",
+      "label": "Approve a public synthetic-demo target",
+      "kind": "message",
+      "status": "completed",
+      "summary": "The user explicitly allowed synthetic issues in the public itsnoor24/mongodb-hackathon repository after it was identified as public.",
+      "evidence": "Use this public repo for synthetic demo issues"
+    },
+    {
+      "id": "phase1-github",
+      "parentId": "phase1",
+      "label": "Create and read back GitHub issue #2",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "The assistant reports creating synthetic issue #2, reading it back, and recording issueNumber 2 in Atlas. The disallowed target was reported never dispatched.",
+      "evidence": "It created synthetic GitHub issue **#2**, read it back, and saved `issueNumber: 2` in the Atlas completion event."
+    },
+    {
+      "id": "phase1-handoff",
+      "parentId": "phase1",
+      "label": "Prepare team handoff instructions",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "A handoff document for Persons 2 and 3 was included with the Phase 1 push.",
+      "evidence": "[Handoff for Persons 2 and 3](C:/Users/Steff/git/mongodb-hackathon/docs/phase-1-handoff.md) is included."
+    },
+    {
+      "id": "phase1-visual",
+      "parentId": "phase1",
+      "label": "Browser visual acceptance remains pending",
+      "kind": "other",
+      "status": "unknown",
+      "summary": "Automated replay/tree checks passed according to the assistant, but browser visual acceptance was left to Person 3 after a sandbox error.",
+      "evidence": "Visual browser acceptance remains pending because browser automation hit the Windows sandbox error."
+    },
+    {
+      "id": "text-observer",
+      "parentId": "sentinel",
+      "label": "Implement passive text-stream capture",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "The assistant reports implementing HTTP text ingestion, piped stdin, Atlas persistence, and an observer UI on a separate local branch.",
+      "evidence": "The ingestion endpoint and observer view are in place."
+    },
+    {
+      "id": "observer-branch",
+      "parentId": "text-observer",
+      "label": "Create a local implementation branch",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "The assistant reports creating steffen/text-stream-local-llm from Phase 1; subsequent work remained local and uncommitted at the captured point.",
+      "evidence": "Created and switched to **`steffen/text-stream-local-llm`**"
+    },
+    {
+      "id": "observer-input",
+      "parentId": "text-observer",
+      "label": "Consume UTF-8 text and append raw frames",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "The endpoint was reported to decode UTF-8 across transport boundaries, persist bounded frames, and accept additional text for an existing stream.",
+      "evidence": "The endpoint decodes UTF-8 across network chunks, saves bounded text frames to Atlas, and accepts more text on the same stream ID."
+    },
+    {
+      "id": "observer-tests",
+      "parentId": "text-observer",
+      "label": "Exercise live capture and failure recovery",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "The assistant reports tests covering persistence before EOF, disconnect retention, concurrent-writer rejection, and parser-error retryability, plus a stdin smoke test.",
+      "evidence": "They confirmed that text is saved before the upload ends, disconnected uploads retain committed frames, concurrent writers are rejected, and parser failures leave the transcript available for retry."
+    },
+    {
+      "id": "observer-parser-adapter",
+      "parentId": "text-observer",
+      "label": "Provide an optional local parser adapter",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "The assistant reports an optional Ollama adapter for producing structured nodes. It was checked using a mock server rather than a configured local model.",
+      "evidence": "An optional local Ollama parser can produce structured nodes; no model is configured yet."
+    },
+    {
+      "id": "observer-real-model",
+      "parentId": "observer-parser-adapter",
+      "label": "Select and validate a real local model",
+      "kind": "other",
+      "status": "unknown",
+      "summary": "The captured conversation does not show a configured or running local LLM. Actual local-model inference remains unverified.",
+      "evidence": "I haven’t found an Ollama server locally, so I’ll test the parser contract with a mock server and leave real inference unverified."
+    },
+    {
+      "id": "terminal-demo",
+      "parentId": "text-observer",
+      "label": "Replay mock terminal output",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "The assistant reports streaming and saving 12 synthetic incident-triage lines. This was a raw-capture demonstration, with parsed nodes empty at that time.",
+      "evidence": "12 mock terminal lines streamed and saved to Atlas."
+    },
+    {
+      "id": "conversation-fixture",
+      "parentId": "sentinel",
+      "label": "Export conversation text as a JSON fixture",
+      "kind": "other",
+      "status": "in_progress",
+      "summary": "The transcript shows a six-reply fixture, an expansion to 59 entries, and a subsequent request for the whole conversation. Its final captured update proposes reading saved session history.",
+      "evidence": "Kindly include the whole conversation"
+    },
+    {
+      "id": "conversation-first-export",
+      "parentId": "conversation-fixture",
+      "label": "Save the initial six-reply sample",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "The assistant reports writing six visible replies as message IDs, roles, and content, with JSON validation.",
+      "evidence": "Saved six of my visible replies to"
+    },
+    {
+      "id": "conversation-expanded-export",
+      "parentId": "conversation-fixture",
+      "label": "Expand the fixture to 59 entries",
+      "kind": "tool_result",
+      "status": "completed",
+      "summary": "The assistant reports an expanded fixture containing 43 assistant entries and 16 user messages, which the user subsequently asked to make complete.",
+      "evidence": "to **59 messages**: 43 assistant replies, progress updates, and questions, plus 16 user messages."
+    },
+    {
+      "id": "conversation-full-export-plan",
+      "parentId": "conversation-fixture",
+      "label": "Read the full saved-session history",
+      "kind": "message",
+      "status": "in_progress",
+      "summary": "The last assistant entry in this input states an intention to export all available visible messages. The completion of that export occurs outside this captured input and is not inferred here.",
+      "evidence": "I’ll check the saved session history and export every available user and assistant message, including progress updates and clarification questions."
+    }
+  ]
+}

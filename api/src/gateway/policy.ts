@@ -10,17 +10,10 @@ export interface PolicyDecision {
 }
 
 function matchPattern(pattern: string, resource: string): boolean {
-  if (pattern.endsWith("/**") || pattern.endsWith("/*")) {
-    const prefix = pattern.replace(/\/\*+$/, "");
-    return resource.startsWith(prefix);
-  }
-  if (pattern.includes("*")) {
-    const re = new RegExp(
-      "^" + pattern.replace(/\*/g, ".*").replace(/\//g, "\\/") + "$",
-    );
-    return re.test(resource);
-  }
-  return pattern === resource;
+  const escaped = pattern.split("*").map((part) =>
+    part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+  ).join(".*");
+  return new RegExp(`^${escaped}$`).test(resource);
 }
 
 export function evaluatePolicy(

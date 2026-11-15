@@ -39,3 +39,12 @@ export class AuthError extends Error {
     this.name = "AuthError";
   }
 }
+
+/** Read-only search accepts reviewer or agent credentials; ingestion remains agent-only. */
+export function assertSearchAuth(req: Request): void {
+  const key = getBearer(req);
+  const digest = hashApiKey(key ?? "");
+  const agent = safeEqual(digest, hashApiKey(config.agentApiKey));
+  const reviewer = safeEqual(digest, hashApiKey(config.reviewerApiKey));
+  if (!key || !(agent || reviewer)) throw new AuthError("Invalid search credential");
+}

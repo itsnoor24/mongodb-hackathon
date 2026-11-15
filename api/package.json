@@ -9,7 +9,16 @@
     "start": "node dist/index.js",
     "setup": "tsx scripts/setup-seed.ts setup",
     "seed": "tsx scripts/setup-seed.ts seed",
-    "verify-atlas": "tsx scripts/verify-atlas.ts"
+    "verify-atlas": "tsx scripts/verify-atlas.ts",
+    "verify-demo": "tsx scripts/verify-demo.ts",
+    "consume-text": "tsx scripts/consume-text.ts",
+    "demo:text": "tsx scripts/demo-text.ts",
+    "demo:conversation": "tsx scripts/demo-text.ts --conversation",
+    "demo:parsed": "tsx scripts/load-parsed-demo.ts",
+    "demo:pipeline": "tsx scripts/demo-text.ts --conversation --with-output",
+    "demo:behaviors": "tsx scripts/demo-behaviors.ts",
+    "nodes:embed": "tsx scripts/embed-nodes.ts",
+    "test:streams": "tsx --test tests/streams.test.ts tests/behaviors.test.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

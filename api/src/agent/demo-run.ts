@@ -6,11 +6,13 @@ import { COLLECTIONS } from "../db/schemas.js";
 import type { RunDoc } from "../types.js";
 import { processToolCall } from "../gateway/gateway.js";
 import { buildReplayProposals } from "./replay.js";
+import { verifyGithubRepository } from "../tools/github-issue.js";
 
 export async function startDemoRun(
   db: Db,
   options: { replay?: boolean } = {},
 ): Promise<string> {
+  await verifyGithubRepository();
   const runId = config.demoRunId;
   const replay = options.replay ?? true;
   const now = new Date();

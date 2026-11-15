@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { MongoClient } from "mongodb";
+import { Int32, MongoClient } from "mongodb";
 import { config, assertMongoConfigured } from "../src/config.js";
 import {
   COLLECTIONS,
@@ -42,7 +42,6 @@ async function ensureIndexes(db: ReturnType<MongoClient["db"]>): Promise<void> {
   await db
     .collection(COLLECTIONS.audit_events)
     .createIndexes([
-      { key: { _id: 1 }, unique: true },
       { key: { runId: 1, ts: 1 } },
       { key: { runId: 1, actionId: 1 } },
     ]);
@@ -82,26 +81,26 @@ async function seed(): Promise<void> {
 
   const policy = {
     _id: policyId,
-    version: 1,
+    version: new Int32(1),
     name: "Demo GitHub write policy",
     rules: [
       {
         tool: "atlas.read",
         resourcePattern: "demo_records/*",
         effect: "allow",
-        priority: 10,
+        priority: new Int32(10),
       },
       {
         tool: "github.issue.create",
         resourcePattern: `github:${config.githubAllowedOwner || "PRIVATE_ORG"}/${config.githubRepo || "PRIVATE_REPO"}`,
         effect: "allow",
-        priority: 20,
+        priority: new Int32(200),
       },
       {
         tool: "github.issue.create",
         resourcePattern: "github:*/**",
         effect: "deny",
-        priority: 100,
+        priority: new Int32(100),
       },
     ],
   };
